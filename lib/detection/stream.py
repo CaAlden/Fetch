@@ -19,6 +19,9 @@ class Stream():
         ''' Get the next element from the stream'''
         yield self.read()
 
+    def __iter__(self):
+        return self
+
 class ImageStream(Stream):
     #TODO: obtain pi resource.
 
