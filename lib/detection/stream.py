@@ -47,6 +47,22 @@ class ImageStream(Stream):
     def write(self, image):
         raise RuntimeError('Cannot write to an image stream!')
 
+class MultiImageStream(Stream):
+    def __init__(self, inputFiles):
+        self.infiles = inputFiles
+
+    def read(self):
+        if any(self.infiles):
+            first = self.infiles[0]
+            self.infiles = self.infiles[1:]
+            return cv2.imread(first)
+        else:
+            return None
+
+    def write(self, image):
+        raise RuntimeError('Cannot write to an image stream!')
+
+
 class ImageViewer(Stream):
 
     def __init__(self, windowName):
