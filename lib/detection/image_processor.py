@@ -22,7 +22,9 @@ class ImageProcessor(object):
     def start(self):
         ''' Run the processor'''
         image = self.input_stream.read()
-        self.output_stream.write(self.process(image))
+        while image is not None:
+            self.output_stream.write(self.process(image))
+            image = self.input_stream.read()
 
 class ProcessAccumulator(ImageProcessor):
 
