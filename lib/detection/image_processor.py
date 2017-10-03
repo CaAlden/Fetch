@@ -34,14 +34,20 @@ class ProcessAccumulator(ImageProcessor):
 
     def process(self, image):
         for proc in self.process_list:
-            self.output_stream.write(image)
             image = proc(image)
         return image
 
-def process_circles(image):
-    print("About to process circles")
-    circles = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT, 1, 300, param1=50, param2=50, minRadius=50, maxRadius=300)
-    print("Done!")
+class CircleProcessor(ProcessAccumulator):
+    def __init__(self, input_stream, output_stream):
+        process_list = [process_color, process_blur, process_circles]
+        super().__init__(input_stream, output_stream, process_list)
+
+    def process(self, image):
+        original = image
+        circles = super().process(image)
+        return draw_circles(original, circles)
+
+def draw_circles(image, circles):
 
     if circles is not None:
         print("Circles found")
@@ -52,6 +58,13 @@ def process_circles(image):
             cv2.rectangle(image, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
 
     return image
+
+def process_circles(image):
+    print("About to process circles")
+    circles = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT, 1, 600, param1=50, param2=50, minRadius=20, maxRadius=300)
+    print("Done!")
+    return circles
+
 
 def process_blur(image):
     return cv2.medianBlur(image, 5)

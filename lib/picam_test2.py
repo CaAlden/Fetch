@@ -29,7 +29,7 @@ cameraSettings = {
 }
 
 instream = detection.PiStream(0, **cameraSettings)
-outstream = detection.ImageViewer('Test')
+outstream = detection.CircleCenters()
 
 procs = [detection.process_blur,
          detection.process_color,

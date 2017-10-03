@@ -2,6 +2,7 @@
 
 import abc
 import cv2
+import numpy as np
 
 class Stream(object):
     __metaclass__ = abc.ABCMeta
@@ -23,6 +24,7 @@ class Stream(object):
 
     def __iter__(self):
         return self
+
 
 class ObjectStream(Stream):
     ''' Basic stream that holds a resource, writing updates the resource,
@@ -73,5 +75,19 @@ class ImageViewer(Stream):
 
     def write(self, image):
         cv2.imshow(self.windowName, image)
-        cv2.waitKey(0)
+        cv2.waitKey(1)
+        print("Showing image")
 
+class CircleCenters(Stream):
+    def read(self):
+        raise RuntimeError("Don't write to out stream")
+
+    def write(self, circles):
+        if circles is not None:
+            print("Circles found\n\n")
+            circles = np.round(circles[0, :]).astype("int")
+
+            for (x, y, r) in circles:
+                print("({}, {}) radius {} px".format(x, y, r))
+
+            print("\n")
