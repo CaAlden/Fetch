@@ -35,10 +35,16 @@ procs = [detection.process_blur,
          detection.process_color,
          detection.process_circles]
 
+def handle_circles(circles, img):
+    if circles is not None:
+        circles = np.round(circles[0, :]).astype("int")
+        print("[DEBUG] -------- " + len(circles))
+    return detection.draw_circles(img, circles)
+
 print("Starting up!")
 processor = detection.CircleProcessor(instream, outstream)
 
 try:
     processor.start()
 except KeyboardInterrupt as ke:
-    sys.exit(0)
+    s ys.exit(0)
