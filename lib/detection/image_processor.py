@@ -61,7 +61,7 @@ def draw_circles(image, circles):
 
 def process_circles(image):
     print("About to process circles")
-    circles = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT, 1, 600, param1=50, param2=50, minRadius=20, maxRadius=300)
+    circles = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT, 1, 1000, param1=50, param2=50, minRadius=10, maxRadius=75)
     print("Done!")
     return circles
 
