@@ -47,12 +47,12 @@ class CircleProcessor(ProcessAccumulator):
         if self._circle_handling_strategy is None:
             return draw_circles(original, circles)
         else:
-            return self._circle_handling_strategy(circles)
+            return self._circle_handling_strategy(circles, original)
 
     def process(self, image):
         original = image
         circles = super().process(image)
-        return self.handleCircles(circles, original)
+        return self.handle_circles(circles, original)
 
 def draw_circles(image, circles):
 
