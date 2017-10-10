@@ -38,14 +38,21 @@ class ProcessAccumulator(ImageProcessor):
         return image
 
 class CircleProcessor(ProcessAccumulator):
-    def __init__(self, input_stream, output_stream):
+    def __init__(self, input_stream, output_stream, circle_handler=None):
         process_list = [process_color, process_blur, process_circles]
+        self._circle_handling_strategy = circle_handler
         super().__init__(input_stream, output_stream, process_list)
+
+    def handle_circles(self, circles, original):
+        if self._circle_handling_strategy is None:
+            return draw_circles(original, circles)
+        else:
+            return self._circle_handling_strategy(circles)
 
     def process(self, image):
         original = image
         circles = super().process(image)
-        return draw_circles(original, circles)
+        return self.handleCircles(circles, original)
 
 def draw_circles(image, circles):
 

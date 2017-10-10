@@ -42,7 +42,7 @@ def handle_circles(circles, img):
     return detection.draw_circles(img, circles)
 
 print("Starting up!")
-processor = detection.CircleProcessor(instream, outstream)
+processor = detection.CircleProcessor(instream, outstream,circle_handler=handle_circles)
 
 try:
     processor.start()
