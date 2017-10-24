@@ -9,19 +9,38 @@ import logging
 class VehicleController(object):
     ''' Navigation Controller interface base class.'''
 
-    def __init__(self, vehicle_resource, logger=None):
-        self._vehicle = vehicle_resource
+    def __init__(self, vehicleResource, logger=None):
+        self._vehicle = vehicleResource
         self._logger = logger
 
-    def navigate_to(self, gps_coord):
+    def initialize(self, vehicleConfig=None):
+        '''Initialize the vehcile.'''
+        pass
+
+    def takeoff(self):
+        pass
+
+    def takeoffTo(self, altitude):
+        pass
+
+    def land(self):
+        pass
+
+    def moveTo(self, dx, dy, dz):
+        pass # TODO: See issue #1
+
+    def getVehicleStatus(self):
+        pass
+
+    def navigateTo(self, gpsCoord):
         ''' Navigate to the given GPS coordinate'''
         pass
 
-    def get_location(self):
+    def getLocation(self):
         ''' Report the vehicles current location'''
         pass
 
-    def _handle_command(self, command):
+    def _handleCommand(self, command):
         ''' Handle a basic command'''
         pass
 
