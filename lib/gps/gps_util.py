@@ -40,7 +40,7 @@ class GPSCoord():
 
         return GPSCoord(lat, lon, time)
 
-    def __init__(self, latitude, longitude, time):
+    def __init__(self, latitude, longitude, time=None):
         self.latitude = latitude
         self.longitude = longitude
         self.time = time
