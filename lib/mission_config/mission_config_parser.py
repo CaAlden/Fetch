@@ -10,14 +10,13 @@ def parseMissionConfig(missionPlanFilename):
     validateFormat(rawConfig)
     return rawConfig
 
-
 def validateTitle(title):
     if title is None:
         return "\n Must specify a title"
 
 def validateType(typeValue):
     typeValue = typeValue
-    expectedTypes = ["deploy", "retrieve", "test"]
+    expectedTypes = ["deploy", "retrieve", "takeoff", "navigation", "mission"]
     if typeValue not in expectedTypes:
         return "\n- Type must be one of " + str(expectedTypes) + " got " + typeValue
 
@@ -25,7 +24,6 @@ def validateDescription(description):
     pass
 
 def validateWaypoints(waypoints):
-
     if waypoints is None or len(waypoints) < 1:
         return "\n- Must specify at least 1 waypoint"
     else:
