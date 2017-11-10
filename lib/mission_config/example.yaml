@@ -1,8 +1,0 @@
-Name: Example Mission
-Description: "Fly the drone!"
-Type: deploy
-Waypoints:
-    - 46.321, 46.432, 3
-    - 46.433, 122.3254, 3
-Return Home: True
-

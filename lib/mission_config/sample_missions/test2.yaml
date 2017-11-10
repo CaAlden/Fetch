@@ -1,5 +1,5 @@
 Name: Test 2
 Description: "takeoff and land"
 Type: takeoff
-Waypoints:
+Waypoints: None
 Return Home: True
