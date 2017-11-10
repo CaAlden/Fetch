@@ -1,5 +1,7 @@
 import yaml
 
+AZIMUTH_MAX = 5     # in meters
+
 def parseMissionConfig(missionPlanFilename):
     ''' Parse a mission configuration from the mission plan file'''
     with open(missionPlanFilename, 'r') as missionFile:
@@ -37,7 +39,7 @@ def validateWaypoints(waypoints):
 
 def validateGPSCoord(latLon):
     try:
-        lat, lon = tuple(map(lambda x: float(x.strip()), latLon.split(',')))
+        lat, lon, az = tuple(map(lambda x: float(x.strip()), latLon.split(',')))
     except ValueError:
         return "- Malformed gps coordinate: " + latLon
     errStr = None
@@ -50,13 +52,24 @@ def validateGPSCoord(latLon):
         else:
             errStr += "\n- Longitude out of bounds: {}".format(lon)
 
+    if abs(az) > AZIMUTH_MAX:
+        if errStr is None:
+            errStr = "- Azimuth out of bounds: {}".format(az)
+        else: 
+            errStr += "\n- Azimuth out of bounds: {}".format(az)
+
     return errStr
+
+def validateReturnHome(returnHome):
+    if returnHome is None:
+        return "\nMust specify Return Home"
 
 VALIDATION_MAP  = {
     'title': validateTitle,
     'description': validateDescription,
     'waypoints': validateWaypoints,
-    'type': validateType
+    'type': validateType,
+    'return home': validateReturnHome
 }
 
 def validateFormat(config, warnings=False):

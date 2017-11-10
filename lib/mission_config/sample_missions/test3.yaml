@@ -3,4 +3,4 @@ Description: "fly to a point and land"
 Type: navigation
 Waypoints:
     - 46.321, 46.432, 3
-Return to Home: False
+Return Home: False
