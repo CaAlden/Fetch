@@ -1,0 +1,8 @@
+Name: Test 6
+Description: "land at 3 points and return home"
+Type: mission
+Waypoints:
+    - 46.321, 46.432
+    - 46.433, 122.3254
+    - 46.321, 46.432
+Return to Home: True
