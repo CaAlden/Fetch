@@ -4,13 +4,11 @@ This file contains the interface definition for a high level
 navigation controller.
 """
 
-from dronekit import connect, Command
+from dronekit import connect, VehicleMode, LocationGlobal
 from pymavlink import mavutil
 
 import time
 import logging
-
-MAV_MODE_AUTO = 4  # temp
 
 
 class VehicleController(object):
@@ -18,13 +16,17 @@ class VehicleController(object):
     Navigation Controller interface base class.
     """
 
-    def __init__(self, vehicle_resource='127.0.0.1:14540', logger=None):
+    def __init__(self, vehicle_resource='tcp:127.0.0.1:5760', logger=None):
         self._vehicle = connect(vehicle_resource, wait_ready=True)
         self._logger = logger
         self._location = self._vehicle.location.global_relative_frame
+        self._vehicle.home_location = LocationGlobal(self._location.lat,
+                                                     self._location.lon, self._location.alt)
 
         self._cmds = self._vehicle.commands
         self._cmds.clear()
+
+        self.default_altitude = 3
 
     def initialize(self, vehicleConfig=None):
         """
@@ -35,54 +37,68 @@ class VehicleController(object):
         pass
 
     def takeoff(self):
-        pass
-
-    def takeoffTo(self, altitude):
         """
-        Take off to specified altitude in meters. Assumes takeoff from current
-        latitude/longitude.
-        :param altitude: (m).
+        Arms the copter object and flies to the default altitude. Follows
+        recommended launch sequence detailed at this link:
+        ---> http://python.dronekit.io/develop/best_practice.html
         """
-        # TODO; implement this later for safe takeoff
-        # while not self._vehicle.is_armable:
-        #     print 'Waiting for vehicle to initialize...'
-        #     time.sleep(1)
+        while not self._vehicle.is_armable:
+            print 'Waiting for vehicle to initialize...'
+            time.sleep(1)
 
         print 'Arming now'
-        # self._set_mode(MAV_MODE_AUTO)
+        self._set_mode('GUIDED')
         self._vehicle.armed = True
+
         while not self._vehicle.armed:
             print 'Waiting for arming...'
             time.sleep(1)
 
         print 'Taking off!'
-        self._vehicle._master.mav.command_long_send(self._vehicle._master.target_system,
-                                                    self._vehicle._master.target_component,
-                                                    mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
-                                                    0, 0, 0, 0, 0, float(self._location.lat),
-                                                    float(self._location.lon),
-                                                    float(altitude))
+        self._vehicle.simple_takeoff(self.default_altitude)
 
-        # Wait until vehicle approximately reaches target altitude
-        # while self._location.alt < altitude*0.95:
-        #     time.sleep(1)
+        # Wait until the vehicle almost reaches target altitude
+        while self._vehicle.location.global_relative_frame.alt < self.default_altitude*0.95:
+            time.sleep(1)
+
+
+    def takeoffTo(self, altitude):
+        """
+        Arms the copter object and flies to specified altitude.
+        Follows recommended (safe) launch sequence detailed at this link:
+        ---> http://python.dronekit.io/develop/best_practice.html
+
+        :param altitude: Target height (m)
+        """
+
+        while not self._vehicle.is_armable:
+            print 'Waiting for vehicle to initialize...'
+            time.sleep(1)
+
+        print 'Arming now'
+        self._set_mode('GUIDED')
+        self._vehicle.armed = True
+
+        while not self._vehicle.armed:
+            print 'Waiting for arming...'
+            time.sleep(1)
+
+        print 'Taking off!'
+        self._vehicle.simple_takeoff(altitude)
+
+        # Wait until the vehicle almost reaches target altitude
+        while self._vehicle.location.global_relative_frame.alt < altitude*0.95:
+            time.sleep(1)
 
     def land(self):
         """
-        Land at current latitude/longitude.
+        Land at current latitude/longitude by putting vehicle into LAND mode.
         """
-        self._vehicle._master.mav.command_long_send(self._vehicle._master.target_system,
-                                                    self._vehicle._master.target_component,
-                                                    mavutil.mavlink.MAV_CMD_NAV_LAND,
-                                                    0, 0, 0, 0, 0, float(self._location.lat),
-                                                    float(self._location.lon),
-                                                    self._vehicle.home_location.alt)
-
-        while self._location.alt > self._vehicle.home_location.alt:
-            time.sleep(1)
+        print 'Setting LAND mode...'
+        self._set_mode('LAND')
 
     def moveTo(self, dx, dy, dz):
-        pass # TODO: See issue #1
+        pass # TODO: See issue #1 - implement using STABILIZE mode?
 
     def getVehicleStatus(self):
         """
@@ -95,13 +111,18 @@ class VehicleController(object):
         print " GPS: %s" % self._vehicle.gps_0
         print " Alt: %s" % self._vehicle.location.global_relative_frame.alt
 
-    def navigateTo(self, gpsCoord):
+    def navigateTo(self, lat, lon, alt):
         ''' Navigate to the given GPS coordinate'''
-        pass
+        self._set_mode('GUIDED')
+        gps_coord = LocationGlobal(lat, lon, alt)
+        self._vehicle.simple_goto(gps_coord)
 
     def getLocation(self):
         ''' Report the vehicles current location'''
-        pass
+        print "Location:"
+        print "Lat: %f" % self._location.lat
+        print "Lon: %f" % self._location.lon
+        print "Alt: %f" % self._location.alt
 
     def _handleCommand(self, command):
         ''' Handle a basic command'''
@@ -115,12 +136,6 @@ class VehicleController(object):
     def _set_mode(self, mode):
         """
         Set vehicle mode.
-        Vehicle mode switching is not yet supported for PX4 using Dronekit, so no list of valid
-        mav modes exists...
         :param mode: Integer designating the desired MAV mode
         """
-        self._vehicle._master.mav.command_long_send(self._vehicle._master.target_system,
-                                                    self._vehicle._master.target_component,
-                                                    mavutil.mavlink.MAV_CMD_DO_SET_MODE,
-                                                    0, mode, 0, 0, 0, 0, 0, 0)
-
+        self._vehicle.mode = VehicleMode(mode)
