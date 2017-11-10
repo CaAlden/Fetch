@@ -1,6 +1,6 @@
 import yaml
 
-AZIMUTH_MAX = 5     # in meters
+ALTITUDE_MAX = 5     # in meters
 
 def parseMissionConfig(missionPlanFilename):
     ''' Parse a mission configuration from the mission plan file'''
@@ -39,7 +39,7 @@ def validateWaypoints(waypoints):
 
 def validateGPSCoord(latLon):
     try:
-        lat, lon, az = tuple(map(lambda x: float(x.strip()), latLon.split(',')))
+        lat, lon, alt = tuple(map(lambda x: float(x.strip()), latLon.split(',')))
     except ValueError:
         return "- Malformed gps coordinate: " + latLon
     errStr = None
@@ -52,7 +52,7 @@ def validateGPSCoord(latLon):
         else:
             errStr += "\n- Longitude out of bounds: {}".format(lon)
 
-    if abs(az) > AZIMUTH_MAX:
+    if abs(alt) > ALTITUDE_MAX:
         if errStr is None:
             errStr = "- Azimuth out of bounds: {}".format(az)
         else: 
