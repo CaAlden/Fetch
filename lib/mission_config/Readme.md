@@ -1,35 +1,35 @@
-# Mission Config 
-
 ## Flight Types
 
 * takeoff
-	** takes off to a height
-	** lands
+	1. takes off to a height
+	1. lands
 * navigation
-	** takes off to a height
-	** navigates to (a) point(s)
-	** lands
+	1. takes off to a height
+	1. navigates to a point
+	1. repeat ii. as needed
+	1. optional return to home
+	1. lands
 * mission
-	** takes off to a height
-	** navigates to a point
-	** lands
-	** takes off to a height
-	** repeats 2 - 4 as needed
-	** return to home
-	** lands
-** deploy
-	** takes off to a height
-	** navigates to a point
-	** land/deploys
-	** takes off to a height
-	** repeats 2 - 4 as needed
-	** return to home
-	** lands
-** retrieve
-	** takes off to a height
-	** navigates to a point
-	** land/retrieves node
-	** takes off to a height
-	** repeats 2 - 4 as needed
-	** return to home
-	** lands
+	1. takes off to a height
+	1. navigates to a point
+	1. lands
+	1. takes off to a height
+	1. repeats ii. - iv. as needed
+	1. return to home
+	1. lands
+* deploy
+	1. takes off to a height
+	1. navigates to a point
+	1. land/deploys
+	1. takes off to a height
+	1. repeats ii. - iv. as needed
+	1. return to home
+	1. lands
+* retrieve
+	1. takes off to a height
+	1. navigates to a point
+	1. land/retrieves node
+	1. takes off to a height
+	1. repeats ii. - iv. as needed
+	1. return to home
+	1. lands
