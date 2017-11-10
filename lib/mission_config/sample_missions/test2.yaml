@@ -1,0 +1,5 @@
+Name: Test 2
+Description: "takeoff and land"
+Type: takeoff
+Waypoints:
+Return Home: True

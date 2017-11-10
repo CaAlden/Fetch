@@ -4,3 +4,5 @@ Type: deploy
 Waypoints:
     - 46.321, 46.432
     - 46.433, 122.3254
+Return Home: True
+

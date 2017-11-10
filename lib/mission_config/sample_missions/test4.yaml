@@ -1,0 +1,6 @@
+Name: Test 4
+Description: "fly to a point and return home"
+Type: navigation
+Waypoints:
+    - 46.321, 46.432
+Return to Home: True
