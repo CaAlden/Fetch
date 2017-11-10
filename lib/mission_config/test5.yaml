@@ -1,0 +1,6 @@
+Name: Test 5
+Description: "land at a point and return home"
+Type: mission
+Waypoints:
+    - 46.321, 46.432, 3 
+Return to Home: True
