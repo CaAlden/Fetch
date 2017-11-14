@@ -5,7 +5,6 @@ navigation controller.
 """
 
 from dronekit import connect, VehicleMode, LocationGlobal
-from pymavlink import mavutil
 
 import time
 import logging
@@ -17,13 +16,12 @@ class VehicleController(object):
     """
 
     def __init__(self, vehicle_resource='tcp:127.0.0.1:5760', logger=None):
-        self._vehicle = connect(vehicle_resource, wait_ready=True)
-        self._logger = logger
-        self._location = self._vehicle.location.global_relative_frame
+        if logger is None:
+            self._logger = logging.getLogger(__name__)
+        else:
+            self._logger = logger
 
-        self._cmds = self._vehicle.commands
-        self._cmds.clear()
-
+        self._vehicle_resource = vehicle_resource
         self.default_altitude = 3
 
     def initialize(self, vehicleConfig=None):
@@ -32,7 +30,10 @@ class VehicleController(object):
         :param vehicleConfig:
         :return:
         """
-        pass
+        self._vehicle = connect(self._vehicle_resource, wait_ready=True)
+        self._location = self._vehicle.location.global_relative_frame
+        self._cmds = self._vehicle.commands
+        self._cmds.clear()
 
     def takeoff(self):
         """
@@ -78,12 +79,11 @@ class VehicleController(object):
         Display some basic vehicle attributes. Could be used to verify
         proper vehicle connection.
         """
-        # TODO: log this instead of printing
-        print " Type: %s" % self._vehicle._vehicle_type
-        print " Armed: %s" % self._vehicle.armed
-        print " System status: %s" % self._vehicle.system_status.state
-        print " GPS: %s" % self._vehicle.gps_0
-        print " Alt: %s" % self._vehicle.location.global_relative_frame.alt
+        return {'type': self._vehicle._vehicle_type,
+                'armed': self._vehicle.armed,
+                'status': self._vehicle.system_status,
+                'gps': self._vehicle.gps_0,
+                'altitude': self._vehicle.location.global_relative_frame.alt}
 
     def navigateTo(self, lat, lon, alt):
         """
@@ -97,11 +97,7 @@ class VehicleController(object):
         """
         Report the vehicles current location.
         """
-        # TODO: log this instead of printing
-        print "Location:"
-        print "Lat: %f" % self._location.lat
-        print "Lon: %f" % self._location.lon
-        print "Alt: %f" % self._location.alt
+        return self._location.alt
 
     def _log(self, message, level=logging.INFO):
         """
