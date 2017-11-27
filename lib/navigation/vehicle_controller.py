@@ -36,18 +36,7 @@ class VehicleController(object):
         self._cmds.clear()
 
     def takeoff(self):
-        """
-        Arms the copter object and flies to the default altitude. Follows
-        recommended launch sequence detailed at this link:
-        ---> http://python.dronekit.io/develop/best_practice.html
-        """
-        self._set_mode('GUIDED')
-        self._arm()
-        self._vehicle.simple_takeoff(self.default_altitude)
-
-        # Wait until the vehicle almost reaches target altitude
-        while self._vehicle.location.global_relative_frame.alt < self.default_altitude*0.95:
-            time.sleep(1)
+        self.takeoffTo(self.default_altitude)
 
     def takeoffTo(self, altitude):
         """
@@ -63,7 +52,8 @@ class VehicleController(object):
 
         # Wait until the vehicle almost reaches target altitude
         while self._vehicle.location.global_relative_frame.alt < altitude*0.95:
-            time.sleep(1)
+            self._logger.debug("Taking off: Current Altitude %.3f", self._vehicle.location.global_relative_frame.alt)
+            time.sleep(0.250)
 
     def land(self):
         """
@@ -73,6 +63,9 @@ class VehicleController(object):
 
     def moveTo(self, dx, dy, dz):
         pass # TODO: See issue #1 - implement using STABILIZE mode?
+
+    def returnHome(self):
+        self._logger.warning("Returing home not yet supported!")
 
     def getVehicleStatus(self):
         """
@@ -97,7 +90,7 @@ class VehicleController(object):
         """
         Report the vehicles current location.
         """
-        return self._location.alt
+        return self._location.alt # TODO: shouldn't this give back more than just alt?
 
     def _log(self, message, level=logging.INFO):
         """
