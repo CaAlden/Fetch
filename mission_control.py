@@ -9,11 +9,10 @@ sys.path.insert(0, lib_path)
 ## Beginning of actual script
 from signal import SIGKILL
 
+from functools import partial
 import argparse
 import logging
 import socket
-
-from functools import partial
 import yaml
 
 from navigation import VehicleController
@@ -47,8 +46,7 @@ def genericMission(drone, missionConf, missionStrategy):
 
 def handleNavigationMission(drone, missionConf, wayPointTask=None):
     def navStrat(drone, missionConf):
-        for waypoint in missionConf['Waypoints']:
-            lat,lon,alt = waypoint.split(',')
+        for lat, lon, alt in missionConf['Waypoints']:
             drone.navigateTo(lat, lon, alt)
             if wayPointTask is not None:
                 wayPointTask(drone, missionConf)
@@ -137,6 +135,9 @@ def main():
         sock = getHeartbeatSocket(sockInfo)
         mission = partial(handleMission, drone, missionConf)
         watchdog.heartbeat_watchdog(mission, sock, 1, on_success, on_err)
+    # TODO: Establish heartbeat if that option is given.
+    drone.initialize()
+    handleMission(drone, missionConf)
 
 if __name__ == '__main__':
     main()

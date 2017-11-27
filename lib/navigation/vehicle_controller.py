@@ -78,8 +78,8 @@ class VehicleController(object):
         self._vehicle.simple_takeoff(altitude)
 
         # Wait until the vehicle almost reaches target altitude
-        while self.current_alt < altitude*0.95:
-            self._logger.debug("Taking off: Current Altitude %.3f", self.current_alt)
+        while self._vehicle.location.global_relative_frame.alt < altitude*0.95:
+            self._logger.debug("Taking off: Current Altitude %.3f", self._vehicle.location.global_relative_frame.alt)
             time.sleep(0.250)
 
     def land(self):
@@ -106,6 +106,9 @@ class VehicleController(object):
 
         while not self.reachedLocation(self.home_position):
             time.sleep(0.250)
+
+    def returnHome(self):
+        self._logger.warning("Returing home not yet supported!")
 
     def getVehicleStatus(self):
         """
