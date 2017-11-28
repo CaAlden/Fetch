@@ -40,7 +40,8 @@ def genericMission(drone, missionConf, missionStrategy):
 
 def handleNavigationMission(drone, missionConf, wayPointTask=None):
     def navStrat(drone, missionConf):
-        for lat, lon, alt in missionConf['Waypoints']:
+        for waypoint in missionConf['Waypoints']:
+            lat,lon,alt = waypoint.split(',')
             drone.navigateTo(lat, lon, alt)
             if wayPointTask is not None:
                 wayPointTask(drone, missionConf)

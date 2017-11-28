@@ -4,7 +4,8 @@ This file contains the interface definition for a high level
 navigation controller.
 """
 
-from dronekit import connect, VehicleMode, LocationGlobal
+from dronekit import connect, VehicleMode
+from .nav_util import form_waypoint, get_location_bounds
 
 import time
 import logging
@@ -31,9 +32,24 @@ class VehicleController(object):
         :return:
         """
         self._vehicle = connect(self._vehicle_resource, wait_ready=True)
-        self._location = self._vehicle.location.global_relative_frame
         self._cmds = self._vehicle.commands
         self._cmds.clear()
+    
+    @property
+    def current_lat(self):
+        return self._vehicle.location._lat
+    
+    @property
+    def current_lon(self):
+        return self._vehicle.location._lon
+    
+    @property
+    def current_alt(self):
+        return self._vehicle.location._alt
+    
+    @property
+    def home_position(self):
+        return self._vehicle.home_location
 
     def takeoff(self):
         self.takeoffTo(self.default_altitude)
@@ -51,8 +67,8 @@ class VehicleController(object):
         self._vehicle.simple_takeoff(altitude)
 
         # Wait until the vehicle almost reaches target altitude
-        while self._vehicle.location.global_relative_frame.alt < altitude*0.95:
-            self._logger.debug("Taking off: Current Altitude %.3f", self._vehicle.location.global_relative_frame.alt)
+        while self.current_alt < altitude*0.95:
+            self._logger.debug("Taking off: Current Altitude %.3f", self.current_alt)
             time.sleep(0.250)
 
     def land(self):
@@ -60,12 +76,22 @@ class VehicleController(object):
         Land at current latitude/longitude by putting vehicle into LAND mode.
         """
         self._set_mode('LAND')
+        while self.current_alt > 0.0:
+            time.sleep(0.250)
 
     def moveTo(self, dx, dy, dz):
         pass # TODO: See issue #1 - implement using STABILIZE mode?
 
     def returnHome(self):
-        self._logger.warning("Returing home not yet supported!")
+        """
+        Return to the home position (where vehicle was armed).
+        NOTE: The value parameter RTL_MIN from within GCS configuration will determine what altitude the drone
+        will take off to when returning home. The default is 15 m.
+        """
+        self._set_mode('RTL')
+    
+        while not self.reachedLocation(self.home_position):
+            time.sleep(0.250)
 
     def getVehicleStatus(self):
         """
@@ -76,21 +102,39 @@ class VehicleController(object):
                 'armed': self._vehicle.armed,
                 'status': self._vehicle.system_status,
                 'gps': self._vehicle.gps_0,
-                'altitude': self._vehicle.location.global_relative_frame.alt}
+                'altitude': self.current_alt}
 
     def navigateTo(self, lat, lon, alt):
         """
         Set GUIDED mode and navigate to the given GPS waypoint.
         """
         self._set_mode('GUIDED')
-        gps_coord = LocationGlobal(lat, lon, alt)
-        self._vehicle.simple_goto(gps_coord)
+        waypoint = form_waypoint(lat, lon, alt)
+        self._vehicle.simple_goto(waypoint)
+    
+        while not self.reachedLocation(waypoint):
+            time.sleep(0.250)
 
     def getLocation(self):
         """
         Report the vehicles current location.
         """
-        return self._location.alt # TODO: shouldn't this give back more than just alt?
+        return {'lat': self.current_lat,
+                'lon': self.current_lon,
+                'alt': self.current_alt}
+                
+    def reachedLocation(self, location):
+        """
+        Determines if the vehicle has reached the given location coordinates.
+        :param location: LocationGlobal object specifying the location that the drone should reach.
+        :return: Bool indicating whether the location has been reached (within error bounds).
+        """
+        bounds = get_location_bounds(location)
+        if (self.current_lat > bounds.lat.max or self.current_lat < bounds.lat.min) and \
+            (self.current_lon > bounds.lon.max or self.current_lon < bounds.lon.min):
+            return False
+        else:
+            return True
 
     def _log(self, message, level=logging.INFO):
         """
