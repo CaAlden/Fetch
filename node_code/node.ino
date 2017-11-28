@@ -50,7 +50,10 @@ void readXbee() {
 
 	if (Serial.available() > 0) {
 		char nextChar = Serial.read();
-		xbeeString += nextChar;
+		while(nextChar != '\n' && Serial.available() > 0) {
+			xbeeString += nextChar;
+			nextChar = Serial.read();
+		}
 	}
 }
 
@@ -60,8 +63,9 @@ void readGPS() {
 
 	if (gpsSerial.available() > 0) {
 		char nextChar = gpsSerial.read();
-		if (char != '\n') {
+		while (nextChar != '\n' && gpsSerial.available() > 0) {
 			gpsString += nextChar;
+			nextChar = gpsSerial.read();
 		}
 	}
 	

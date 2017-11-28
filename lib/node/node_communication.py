@@ -1,10 +1,10 @@
 import json
 import serial
 import sys, time, datetime 	
-import gps_util	
+from .. import gps_util	
 
 
-SERIAL_PORT = “/dev/ttyAMA0”
+UART_SERIAL_PORT = “/dev/ttyAMA0”
 BAUDRATE = 9600
 
 class NodeHub():
@@ -33,16 +33,19 @@ class NodeHub():
 	def connect_xbee(self):
 		# connect to xbee over serial 
 		# TODO define timeout better to match node xbees
-		self.serial = serial.Serial(SERIAL_PORT, BAUDRATE, timeout = 10)
+		self.serial = serial.Serial(UART_SERIAL_PORT, BAUDRATE, timeout = 10)
 
 	def get_data(self):
 		while True:
 			recv_data = serial_connection.readline()
 
 			if recv_data is not None:
+				print("received data")
 				recv_data = recv_data.strip('\n')
 				processed_data = self.parse_recv_data(recv_data)
 				self.handle_recv_data(processed_data)
+			else:
+				print("no data received")
 
 	def close(self):
 		self.serial.close()
