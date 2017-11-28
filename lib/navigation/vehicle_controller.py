@@ -58,6 +58,21 @@ class VehicleController(object):
     @property
     def home_position(self):
         self._assertInitialized()
+
+    @property
+    def current_lat(self):
+        return self._vehicle.location._lat
+
+    @property
+    def current_lon(self):
+        return self._vehicle.location._lon
+
+    @property
+    def current_alt(self):
+        return self._vehicle.location._alt
+
+    @property
+    def home_position(self):
         return self._vehicle.home_location
 
     def takeoff(self):
@@ -78,8 +93,8 @@ class VehicleController(object):
         self._vehicle.simple_takeoff(altitude)
 
         # Wait until the vehicle almost reaches target altitude
-        while self._vehicle.location.global_relative_frame.alt < altitude*0.95:
-            self._logger.debug("Taking off: Current Altitude %.3f", self._vehicle.location.global_relative_frame.alt)
+        while self.current_alt < altitude*0.95:
+            self._logger.debug("Taking off: Current Altitude %.3f", self.current_alt)
             time.sleep(0.250)
 
     def land(self):
@@ -108,7 +123,15 @@ class VehicleController(object):
             time.sleep(0.250)
 
     def returnHome(self):
-        self._logger.warning("Returing home not yet supported!")
+        """
+        Return to the home position (where vehicle was armed).
+        NOTE: The value parameter RTL_MIN from within GCS configuration will determine what altitude the drone
+        will take off to when returning home. The default is 15 m.
+        """
+        self._set_mode('RTL')
+
+        while not self.reachedLocation(self.home_position):
+            time.sleep(0.250)
 
     def getVehicleStatus(self):
         """
