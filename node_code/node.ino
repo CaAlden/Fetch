@@ -1,11 +1,17 @@
 #include <SoftwareSerial.h>
+#include <Adafruit_NeoPixel.h>
 
 #define BAUDRATE 9600
 #define DELAY 1000
-#define LED_PIN 10
 #define STATUS_LED 12
+#define REST 0
+#define READ_XBEE 1
+#define READ_GPS 2
+#define SEND_XBEE 3
 
-SoftwareSerial gpsSerial(5, 6); // RX, TX
+SoftwareSerial gpsSerial = SoftwareSerial(5, 6); // RX, TX
+Adafruit_NeoPixel statusLed = Adafruit_NeoPixel(1, STATUS_LED, NEO_GRB)
+
 char ledState;
 String gpsString;
 String xbeeString;
@@ -23,28 +29,28 @@ void setup() {
 	gpsSerial.begin(BAUDRATE);
 	gpsSerial.write(0xFF);
 
-	pinMode(LED_PIN, OUTPUT); // red LED
-	pinMode(STATUS_LED, OUTPUT);
+	statusLed.begin()
+	triggerLed(0)
 }
 
 void loop() {
 
-	triggerLed();
+	triggerLed(1);
 	readXbee();	
-	triggerLed();
+	triggerLed(2);
 	readGPS();
-	triggerLed();
+	triggerLed(3);
 	sendXbeeMessage();
-	triggerLed();
+	triggerLed(0);
 	delay(DELAY);
 }
 
-void sendXbeeMessage() {
+static void sendXbeeMessage() {
 	# send json with node number and gpscoordinates
 	Serial.println("{\"node\":\"" + NODE_NUMBER + "\", \"gps\":\"" + gpsString + "\"}");
 }
 
-void readXbee() {
+static void readXbee() {
 	xbeeString = "";
 	Serial.listen()
 
@@ -57,7 +63,7 @@ void readXbee() {
 	}
 }
 
-void readGPS() {
+static void readGPS() {
 	gpsString = "";
 	gpsSerial.listen()
 
@@ -71,7 +77,21 @@ void readGPS() {
 	
 }
 
-void triggerLed() {
-	digitalWrite(STATUS_LED,(ledState) ? HIGH : LOW);
-	ledState = !ledState;
+static void triggerLed(int state) {
+	if (state == REST) {
+		setColor(statusLed.Color(0, 0, 0));
+	} else if (state == READ_XBEE) {
+		setColor(statusLed.Color(0, 255, 0));
+	} else if (state == READ_GPS) {
+		setColor(statusLed.Color(0, 255, 100));
+	} else if (state == SEND_XBEE) {
+		setColor(statusLed.Color(255, 0, 0));
+	}
+}
+
+static void setColor(uint32_t color) {
+    for (uint16_t i = 0; i < triangle.numPixels()+4; i++) {
+      statusLed.setPixelColor(i, color);
+    }
+    statusLed.show();
 }

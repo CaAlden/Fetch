@@ -4,7 +4,8 @@ import sys, time, datetime
 from .. import gps_util	
 
 
-UART_SERIAL_PORT = “/dev/ttyAMA0”
+UART_SERIAL_PORT = "/dev/ttyAMA0"
+OLI_MAC_SERIAL = "/dev/tty.usbserial-DN02T3GA"
 BAUDRATE = 9600
 
 class NodeHub():
@@ -33,7 +34,7 @@ class NodeHub():
 	def connect_xbee(self):
 		# connect to xbee over serial 
 		# TODO define timeout better to match node xbees
-		self.serial = serial.Serial(UART_SERIAL_PORT, BAUDRATE, timeout = 10)
+		self.serial = serial.Serial(OLI_MAC_SERIAL, BAUDRATE, timeout = 10)
 
 	def get_data(self):
 		while True:
