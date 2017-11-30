@@ -7,17 +7,24 @@ sys.path.insert(0, lib_path)
 
 
 ## Beginning of actual script
+from signal import SIGKILL
+
 import argparse
 import logging
+import socket
+
+from functools import partial
 import yaml
 
 from navigation import VehicleController
 from mission_config import parseMissionConfig
+import watchdog
 
 def getArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('config', help="The config file for the mission controller.")
     parser.add_argument('mission', help="The mission configuration to run.")
+    parser.add_argument('--heartbeat_srv', help="Address and port of the heartbeat sender.")
 
     return parser.parse_args()
 
@@ -82,6 +89,30 @@ def handleMission(drone, missionConf):
     }
     MISSIONS[missionConf['Type']](drone, missionConf)
 
+
+def parseSockInfo(socketStr):
+    s = socketStr.split(':')
+    return s[0], int(s[1])
+
+def getHeartbeatSocket(addrInfo):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(addrInfo)
+    sock.settimeout(1)
+    return sock
+
+def on_success(hb):
+    ''' What to do when we receive a hb'''
+    logging.info("Got hb: %s", str(hb))
+
+def on_err(e):
+    ''' handle an error on the drone.'''
+    logging.error('Got %s', e)
+
+def on_timeout(process, drone=None):
+    ''' Handle a heartbeat timeout'''
+    os.kill(process.pid, SIGKILL)
+    drone.land()
+
 def main():
 
     args = getArgs()
@@ -90,13 +121,22 @@ def main():
     drone = VehicleController(vehicle_resource=config['vehicle'])
     missionConf = parseMissionConfig(args.mission)
 
+    logging.basicConfig(filename=missionConf['Name'] + '.log',
+                        filemode='w',
+                        level=logging.DEBUG)
+
     logging.info("[Name]: %s", missionConf['Name'])
     logging.info("[Description]: %s", missionConf['Description'])
     logging.info("[Type]: %s", missionConf['Type'])
 
-    # TODO: Establish heartbeat if that option is given.
-    drone.initialize()
-    handleMission(drone, missionConf)
+    #drone.initialize()
+    if args.heartbeat_srv is None:
+        handleMission(drone, missionConf)
+    else:
+        sockInfo = parseSockInfo(args.heartbeat_srv)
+        sock = getHeartbeatSocket(sockInfo)
+        mission = partial(handleMission, drone, missionConf)
+        watchdog.heartbeat_watchdog(mission, sock, 1, on_success, on_err)
 
 if __name__ == '__main__':
     main()
