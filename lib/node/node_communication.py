@@ -1,8 +1,6 @@
 import json
 import serial
 import sys, time, datetime 	
-from .. import gps_util	
-
 
 UART_SERIAL_PORT = "/dev/ttyAMA0"
 OLI_MAC_SERIAL = "/dev/tty.usbserial-DN02T3GA"
@@ -26,10 +24,9 @@ class NodeHub():
 
 	def handle_recv_data(self, data):
 		print("node: " + data["node"])
-		print("gps: " + data["gps"])
-		coord = gps_util.GPSCoord.from_GPGLL_string(data["gps"])
-		print("lat: " + str(coord.latitutde))
-		print("lon: " + str(coord.longitude))
+		print("lat: " + data["latitutde"])
+		print("lon: " + data["longitude"])
+		print("alt: " + data["altitude"])
 
 	def connect_xbee(self):
 		# connect to xbee over serial 
