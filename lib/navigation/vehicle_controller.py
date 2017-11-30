@@ -10,7 +10,6 @@ from .nav_util import form_waypoint, get_location_bounds
 import time
 import logging
 
-
 class VehicleController(object):
     """
     Navigation Controller interface base class.
@@ -24,6 +23,7 @@ class VehicleController(object):
 
         self._vehicle_resource = vehicle_resource
         self.default_altitude = 3
+        self._initialized = False
 
     def initialize(self, vehicleConfig=None):
         """
@@ -34,24 +34,34 @@ class VehicleController(object):
         self._vehicle = connect(self._vehicle_resource, wait_ready=True)
         self._cmds = self._vehicle.commands
         self._cmds.clear()
-    
+        self._initialized = True
+
+    def _assertInitialized(self):
+        if not self._initialized:
+            raise RuntimeError("{} not initialized!".format(self._vehicle_resource))
+
     @property
     def current_lat(self):
+        self._assertInitialized()
         return self._vehicle.location._lat
-    
+
     @property
     def current_lon(self):
+        self._assertInitialized()
         return self._vehicle.location._lon
-    
+
     @property
     def current_alt(self):
+        self._assertInitialized()
         return self._vehicle.location._alt
-    
+
     @property
     def home_position(self):
+        self._assertInitialized()
         return self._vehicle.home_location
 
     def takeoff(self):
+        self._assertInitialized()
         self.takeoffTo(self.default_altitude)
 
     def takeoffTo(self, altitude):
@@ -62,6 +72,7 @@ class VehicleController(object):
 
         :param altitude: Target height (m)
         """
+        self._assertInitialized()
         self._set_mode('GUIDED')
         self._arm()
         self._vehicle.simple_takeoff(altitude)
@@ -75,12 +86,14 @@ class VehicleController(object):
         """
         Land at current latitude/longitude by putting vehicle into LAND mode.
         """
+        self._assertInitialized()
         self._set_mode('LAND')
         while self.current_alt > 0.0:
             time.sleep(0.250)
 
     def moveTo(self, dx, dy, dz):
-        pass # TODO: See issue #1 - implement using STABILIZE mode?
+        self._assertInitialized()
+        # TODO: See issue #1 - implement using STABILIZE mode?
 
     def returnHome(self):
         """
@@ -88,8 +101,9 @@ class VehicleController(object):
         NOTE: The value parameter RTL_MIN from within GCS configuration will determine what altitude the drone
         will take off to when returning home. The default is 15 m.
         """
+        self._assertInitialized()
         self._set_mode('RTL')
-    
+
         while not self.reachedLocation(self.home_position):
             time.sleep(0.250)
 
@@ -98,6 +112,7 @@ class VehicleController(object):
         Display some basic vehicle attributes. Could be used to verify
         proper vehicle connection.
         """
+        self._assertInitialized()
         return {'type': self._vehicle._vehicle_type,
                 'armed': self._vehicle.armed,
                 'status': self._vehicle.system_status,
@@ -108,10 +123,11 @@ class VehicleController(object):
         """
         Set GUIDED mode and navigate to the given GPS waypoint.
         """
+        self._assertInitialized()
         self._set_mode('GUIDED')
         waypoint = form_waypoint(lat, lon, alt)
         self._vehicle.simple_goto(waypoint)
-    
+
         while not self.reachedLocation(waypoint):
             time.sleep(0.250)
 
@@ -119,16 +135,18 @@ class VehicleController(object):
         """
         Report the vehicles current location.
         """
+        self._assertInitialized()
         return {'lat': self.current_lat,
                 'lon': self.current_lon,
                 'alt': self.current_alt}
-                
+
     def reachedLocation(self, location):
         """
         Determines if the vehicle has reached the given location coordinates.
         :param location: LocationGlobal object specifying the location that the drone should reach.
         :return: Bool indicating whether the location has been reached (within error bounds).
         """
+        self._assertInitialized()
         bounds = get_location_bounds(location)
         if (self.current_lat > bounds.lat.max or self.current_lat < bounds.lat.min) and \
             (self.current_lon > bounds.lon.max or self.current_lon < bounds.lon.min):
@@ -148,12 +166,14 @@ class VehicleController(object):
         Set vehicle mode.
         :param mode: Integer designating the desired MAV mode
         """
+        self._assertInitialized()
         self._vehicle.mode = VehicleMode(mode)
 
     def _arm(self):
         """
         Safely arms the drone.
         """
+        self._assertInitialized()
         while not self._vehicle.is_armable:
             time.sleep(1)
 
@@ -166,6 +186,7 @@ class VehicleController(object):
         """
         Safely disarms the drone.
         """
+        self._assertInitialized()
         self._vehicle.armed = False
         while self._vehicle.armed:
             time.sleep(1)
