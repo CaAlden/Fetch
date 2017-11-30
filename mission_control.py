@@ -13,6 +13,7 @@ from functools import partial
 import argparse
 import logging
 import socket
+
 import yaml
 
 from navigation import VehicleController
@@ -136,9 +137,6 @@ def main():
         sock = getHeartbeatSocket(sockInfo)
         mission = partial(handleMission, drone, missionConf)
         watchdog.heartbeat_watchdog(mission, sock, 1, on_success, on_err)
-    # TODO: Establish heartbeat if that option is given.
-    drone.initialize()
-    handleMission(drone, missionConf)
 
 if __name__ == '__main__':
     main()
