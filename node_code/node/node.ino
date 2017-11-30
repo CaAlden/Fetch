@@ -5,7 +5,6 @@
 #define BAUDRATE 9600
 #define DELAY 10000
 #define STATUS_LED 12
-#define READ 0
 #define SEND 1
 #define REST 2
 
@@ -13,7 +12,7 @@ SoftwareSerial gpsSerial = SoftwareSerial(6, 5); // RX, TX
 Adafruit_NeoPixel statusLed = Adafruit_NeoPixel(1, STATUS_LED, NEO_GRB + NEO_KHZ800);
 TinyGPSPlus gps;
 
-String NODE_NUMBER = "1"; //change this manually for each node :(
+String NODE_NUMBER = "3"; //change this manually for each node :(
 int gpsCount = 0;
 
 char ledState;
@@ -61,24 +60,24 @@ void parseInfo() {
     lat = String(gps.location.lat(), 6);
     lng = String(gps.location.lng(), 6);
   } else {
-    lat = "INVALID";
-    lng = "INVALID";
+    lat = "null";
+    lng = "null";
   }
 
   if (gps.altitude.isValid()) {
     alt = String(gps.altitude.meters(), 6);
   } else {
-    alt = "INVALID";
+    alt = "null";
   }
   
   sendGpsData(lat, lng, alt);
 }
 
 static void sendGpsData(String lat, String lng, String alt) {
-  String msg = "{\"node\":\"" + NODE_NUMBER + "\"";
-  msg += ", \"latitude\":\"" + lat + "\"";
-  msg += ", \"longitude\":\"" + lng + "\"";
-  msg += ", \"altitude\":\"" + alt + "\"}";
+  String msg = "{\"node\": \"" + NODE_NUMBER + "\"";
+  msg += ", \"latitude\": " + lat;
+  msg += ", \"longitude\": " + lng;
+  msg += ", \"altitude\": " + alt + "}";
   Serial.println(msg);
 }
 
@@ -96,10 +95,8 @@ static void readXbee() {
 
 
 static void triggerLed(int state) {
-  if (state == READ) {
-    setColor(statusLed.Color(0, 255, 0));
-  } else if (state == SEND) {
-    setColor(statusLed.Color(255, 0, 0));
+  if (state == SEND) {
+    setColor(statusLed.Color(0, 0, 255));
   } else if (state == REST) {
     setColor(statusLed.Color(0, 0, 0));
   }

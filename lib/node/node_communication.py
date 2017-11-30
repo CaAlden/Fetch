@@ -23,10 +23,10 @@ class NodeHub():
 		pass
 
 	def handle_recv_data(self, data):
-		print("node: " + data["node"])
-		print("lat: " + data["latitutde"])
-		print("lon: " + data["longitude"])
-		print("alt: " + data["altitude"])
+		print("node: {}".format(data["node"]))
+		print("lat: {}".format(data["latitude"]))
+		print("lon: {}".format(data["longitude"]))
+		print("alt: {}".format(data["altitude"]))
 
 	def connect_xbee(self):
 		# connect to xbee over serial 
@@ -35,13 +35,14 @@ class NodeHub():
 
 	def get_data(self):
 		while True:
-			recv_data = serial_connection.readline()
-
-			if recv_data is not None:
-				print("received data")
+			recv_data = self.serial.readline()
+			if recv_data:
 				recv_data = recv_data.strip('\n')
-				processed_data = self.parse_recv_data(recv_data)
-				self.handle_recv_data(processed_data)
+				try:
+					processed_data = self.parse_recv_data(recv_data)
+					self.handle_recv_data(processed_data)
+				except:
+					print("invalid data")
 			else:
 				print("no data received")
 
