@@ -58,21 +58,6 @@ class VehicleController(object):
     @property
     def home_position(self):
         self._assertInitialized()
-
-    @property
-    def current_lat(self):
-        return self._vehicle.location._lat
-
-    @property
-    def current_lon(self):
-        return self._vehicle.location._lon
-
-    @property
-    def current_alt(self):
-        return self._vehicle.location._alt
-
-    @property
-    def home_position(self):
         return self._vehicle.home_location
 
     def takeoff(self):
@@ -109,18 +94,6 @@ class VehicleController(object):
     def moveTo(self, dx, dy, dz):
         self._assertInitialized()
         # TODO: See issue #1 - implement using STABILIZE mode?
-
-    def returnHome(self):
-        """
-        Return to the home position (where vehicle was armed).
-        NOTE: The value parameter RTL_MIN from within GCS configuration will determine what altitude the drone
-        will take off to when returning home. The default is 15 m.
-        """
-        self._assertInitialized()
-        self._set_mode('RTL')
-
-        while not self.reachedLocation(self.home_position):
-            time.sleep(0.250)
 
     def returnHome(self):
         """
