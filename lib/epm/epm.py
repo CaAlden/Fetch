@@ -1,7 +1,11 @@
 '''
 Driver for the Electro Permanent Magnet (EPM)
 '''
+import time
+
 from ..utils.gpio import GPIOController, PIN_OUT
+
+SET_DELAY = 2 # seconds for the cap to charge etc.
 
 class EPMController():
 
@@ -21,16 +25,17 @@ class EPMController():
         assert state == 0 or state == 1, "State should be 1 or 0"
 
         if addr & 0b01:
-            self._gpio[self._addr0].set()
+            self._gpio.pins[self._addr0].set()
         else:
-            self._gpio[self._addr0].clear()
+            self._gpio.pins[self._addr0].clear()
 
         if addr & 0b10:
-            self._gpio[self._addr1].set()
+            self._gpio.pins[self._addr1].set()
         else:
-            self._gpio[self._addr1].clear()
+            self._gpio.pins[self._addr1].clear()
 
         if state:
             self._gpio.pins[self._val].set()
         else:
             self._gpio.pins[self._val].clear()
+        time.sleep(SET_DELAY)

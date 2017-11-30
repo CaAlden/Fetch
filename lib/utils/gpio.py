@@ -8,6 +8,8 @@ except ImportError as ie:
     import sys
     sys.exit(1)
 
+
+gpio.setmode(gpio.BOARD)
 PIN_IN = gpio.IN
 PIN_OUT = gpio.OUT
 
