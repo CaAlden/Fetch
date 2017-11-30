@@ -21,25 +21,24 @@ String gpsString;
 String xbeeString;
 
 void setup() {
-	// open up serial communication
-	Serial.begin(BAUDRATE);
+  // open up serial communication
+  Serial.begin(BAUDRATE);
 
-	while (!Serial) {
-		; // wait for serial port to connect. Needed for native USB port only
-	}
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
 
-	gpsSerial.begin(BAUDRATE);
-	//gpsSerial.write(0xFF);
-
-	statusLed.begin();
-	triggerLed(0);
+  gpsSerial.begin(BAUDRATE);
+  
+  statusLed.begin();
+  triggerLed(0);
 }
 
 void loop() {
 
-	triggerLed(REST);
+  triggerLed(REST);
   // read GPS data
-	while(gpsSerial.available() > 0) {
+  while(gpsSerial.available() > 0) {
     if (gps.encode(gpsSerial.read())) {
       if (gpsCount == 0) {
         triggerLed(SEND);
@@ -49,8 +48,8 @@ void loop() {
         gpsCount--;
       }
     }
-	}
-	
+  }
+  
 }
 
 void parseInfo() {
@@ -80,33 +79,33 @@ static void sendGpsData(String lat, String lng, String alt) {
   msg += ", \"latitude\":\"" + lat + "\"";
   msg += ", \"longitude\":\"" + lng + "\"";
   msg += ", \"altitude\":\"" + alt + "\"}";
-	Serial.println(msg);
+  Serial.println(msg);
 }
 
 static void readXbee() {
-	xbeeString = "";
+  xbeeString = "";
 
-	if (Serial.available() > 0) {
-		char nextChar = Serial.read();
-		while(nextChar != '\n' && Serial.available() > 0) {
-			xbeeString += nextChar;
-			nextChar = Serial.read();
-		}
-	}
+  if (Serial.available() > 0) {
+    char nextChar = Serial.read();
+    while(nextChar != '\n' && Serial.available() > 0) {
+      xbeeString += nextChar;
+      nextChar = Serial.read();
+    }
+  }
 }
 
 
 static void triggerLed(int state) {
-	if (state == READ) {
-		setColor(statusLed.Color(0, 255, 0));
-	} else if (state == SEND) {
-		setColor(statusLed.Color(255, 0, 0));
-	} else if (state == REST) {
+  if (state == READ) {
+    setColor(statusLed.Color(0, 255, 0));
+  } else if (state == SEND) {
+    setColor(statusLed.Color(255, 0, 0));
+  } else if (state == REST) {
     setColor(statusLed.Color(0, 0, 0));
-	}
+  }
 }
 
 static void setColor(uint32_t color) {
-	statusLed.setPixelColor(0, color);
+  statusLed.setPixelColor(0, color);
   statusLed.show();
 }
