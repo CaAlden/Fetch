@@ -12,6 +12,11 @@ SoftwareSerial gpsSerial = SoftwareSerial(6, 5); // RX, TX
 Adafruit_NeoPixel statusLed = Adafruit_NeoPixel(1, STATUS_LED, NEO_GRB + NEO_KHZ800);
 TinyGPSPlus gps;
 
+// node 1, color red
+// node 2, color green
+// node 3, color blue
+
+
 String NODE_NUMBER = "3"; //change this manually for each node :(
 int gpsCount = 0;
 
