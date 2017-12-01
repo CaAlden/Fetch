@@ -136,7 +136,8 @@ def main():
         sockInfo = parseSockInfo(args.heartbeat_srv)
         sock = getHeartbeatSocket(sockInfo)
         mission = partial(handleMission, drone, missionConf)
-        watchdog.heartbeat_watchdog(mission, sock, 1, on_success, on_err)
+        timeout_handler = partial(on_timeout, drone=drone)
+        watchdog.heartbeat_watchdog(mission, sock, 1, on_success, on_err, on_timeout=timeout_handler)
 
 if __name__ == '__main__':
     main()
