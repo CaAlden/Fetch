@@ -1,14 +1,17 @@
 import json
 import serial
-import sys, time, datetime 	
+import sys, time, datetime
+import gmplot 	
 
-UART_SERIAL_PORT = "/dev/ttyAMA0"
+PY_UART_SERIAL = "/dev/ttyAMA0"
 OLI_MAC_SERIAL = "/dev/tty.usbserial-DN02T3GA"
 BAUDRATE = 9600
 
 class NodeHub():
 	def __init__(self):
 		self.serial = None
+		self.nodeLocations = {}
+		self.plotter = None
 
 	# decodes data from xbee from json
 	def parse_recv_data(self, data):
@@ -23,17 +26,43 @@ class NodeHub():
 		pass
 
 	def handle_recv_data(self, data):
-		print("node: {}".format(data["node"]))
-		print("lat: {}".format(data["latitude"]))
-		print("lon: {}".format(data["longitude"]))
-		print("alt: {}".format(data["altitude"]))
+		if data["latitude"] is not None and data["longitude"] is not None and data["altitude"] is not None:
+			self.nodeLocations[data["node"]] = {'latitude': data["latitude"], 
+												'longitude': data["longitude"],
+												'altitude': data["altitude"]}
+			print("node: {}".format(data["node"]))
+			print(self.nodeLocations[data["node"]])
+		else:
+			print("node: {}".format(data["node"]))
+			print("data is none")
 
 	def connect_xbee(self):
 		# connect to xbee over serial 
-		# TODO define timeout better to match node xbees
-		self.serial = serial.Serial(OLI_MAC_SERIAL, BAUDRATE, timeout = 10)
+		self.serial = serial.Serial(OLI_MAC_SERIAL, BAUDRATE, timeout = 20)
 
-	def get_data(self):
+	def init_gmplotter(self):
+		self.plotter = gmplot.GoogleMapPlotter(42.3398, -71.0892, 16)
+
+	def plot_points(self):
+		for node in self.nodeLocations:
+			color = self.get_node_color(node)
+			lat = [self.nodeLocations[node]["latitude"]]
+			lng = [self.nodeLocations[node]["longitude"]]
+			self.plotter.scatter(lat, lng, color, marker=True)
+
+		self.plotter.draw('node_locations.html')
+
+	def get_node_color(self, node):
+		if node == '1':
+			return 'r'
+		elif node == '2':
+			return 'g'
+		elif node == '3':
+			return 'b'
+		else:
+			return 'y'
+
+	def get_data(self, plotMap):
 		while True:
 			recv_data = self.serial.readline()
 			if recv_data:
@@ -42,9 +71,14 @@ class NodeHub():
 					processed_data = self.parse_recv_data(recv_data)
 					self.handle_recv_data(processed_data)
 				except:
-					print("invalid data")
+					print("invalid json data")
 			else:
 				print("no data received")
+
+			if plotMap:
+				self.init_gmplotter()
+				self.plot_points()
+
 
 	def close(self):
 		self.serial.close()
