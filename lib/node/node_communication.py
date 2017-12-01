@@ -30,11 +30,9 @@ class NodeHub():
 			self.nodeLocations[data["node"]] = {'latitude': data["latitude"], 
 												'longitude': data["longitude"],
 												'altitude': data["altitude"]}
-			print("node: {}".format(data["node"]))
-			print(self.nodeLocations[data["node"]])
+			print("node: {}\t\tlocation: {}, {}\t\taltitude: {}".format(data["node"], data["latitude"], data["longitude"], data["altitude"]))
 		else:
-			print("node: {}".format(data["node"]))
-			print("data is none")
+			print("node: {} data is none".format(data["node"]))
 
 	def connect_xbee(self):
 		# connect to xbee over serial 
@@ -53,6 +51,7 @@ class NodeHub():
 		self.plotter.draw('node_locations.html')
 
 	def get_node_color(self, node):
+		# colors correspond to leds on node
 		if node == '1':
 			return 'r'
 		elif node == '2':
@@ -72,6 +71,7 @@ class NodeHub():
 					self.handle_recv_data(processed_data)
 				except:
 					print("invalid json data")
+					continue
 			else:
 				print("no data received")
 
