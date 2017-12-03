@@ -9,11 +9,12 @@ from dronekit import LocationGlobal
 LOCATION_ERROR = .0000001
 
 
-def form_waypoint(lat, lon, alt):
+def form_waypoint(waypoint_str):
     """
     Forms the LocationGlobal waypoint object from an inputted waypoint string.
     :return: LocationGlobal object containing lat, lon and alt.
     """
+    lat,lon,alt = waypoint_str.split(',')
     return LocationGlobal(float(lat), float(lon), float(alt))
 
 

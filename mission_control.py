@@ -4,7 +4,7 @@ import sys
 import os
 import time
 from collections import namedtuple
-from dronekit import LocationGlobal
+
 lib_path = os.path.dirname(os.path.realpath(__file__)) + "/lib"
 sys.path.insert(0, lib_path)
 
@@ -19,7 +19,7 @@ import socket
 
 import yaml
 
-from navigation import VehicleController
+from navigation import VehicleController, form_waypoint
 from mission_config import parseMissionConfig
 import watchdog
 
@@ -40,11 +40,11 @@ def loadConfiguration(configFilename):
     with open(configFilename, 'r') as configFile:
         return yaml.load(configFile)
 
-def doReturnHome(drone, missionConf):
-    drone.clearMission()
+def doReturnHome(drone, missionConf, waypoint):
     if missionConf['Return Home']:
-        drone.returnHome()
-    drone.startMission()
+        print(waypoint)
+        genericGoToLandMission(drone, waypoint)
+        drone.startMission()
 
 def genericMission(drone, missionConf, missionStrategy):
     drone.takeoff()
@@ -55,20 +55,29 @@ def genericMission(drone, missionConf, missionStrategy):
 
 def genericGoToLandMission(drone, waypoint):
     drone.clearMission()
-    drone.takeoff(drone.current_lat, drone.current_lon)
-    drone.navigateTo(waypoint.lat,waypoint.lon,waypoint.alt)
+    drone.takeoff()
+    drone.navigateTo(waypoint)
     drone.land(waypoint.lat, waypoint.lon)
     drone.startMission()
 
 def handleNavigationMission(drone, missionConf, wayPointTask=None):
     def navStrat(drone, missionConf):
         for waypoint in missionConf['Waypoints']:
-            lat,lon,alt = waypoint.split(',')
-            drone.navigateTo(lat, lon, alt)
+            waypoint = form_waypoint(waypoint)
+            drone.navigateTo(waypoint)
             if wayPointTask is not None:
                 wayPointTask(drone, missionConf)
 
     genericMission(drone, missionConf, navStrat)
+
+def handleDeployRetrieveMission(drone, missionConf, waypointTask=None):
+    for waypoint in missionConf['Waypoints']:
+        waypoint = form_waypoint(waypoint)
+        genericGoToLandMission(drone, waypoint)
+        if waypointTask is not None:
+            waypointTask(drone, missionConf)
+
+    # doReturnHome(drone, missionConf, home_waypoint)
 
 def handleTakeoffMission(drone, missionConf):
     def doNothing(drone, missionConf):
@@ -83,20 +92,20 @@ def handleDefaultMission(drone, missionConf):
     handleNavigationMission(drone, missionConf, wayPointTask=missionWaypointHandler)
 
 def handleDeployMission(drone, missionConf):
-    for waypoint in missionConf['Waypoints']:
-        lat,lon,alt = waypoint.split(',')
-        waypoint = LocationGlobal(lat,lon,alt)
-        genericGoToLandMission(drone, waypoint)
-        # TODO: deploy node
-        time.sleep(30)  # placeholder
+    def deployWaypointHandler(drone, missionConf):
+        # TODO: deploy node here
+        # while(!nodeDeployed):
+        time.sleep(25)  # placeholder to delay mission
 
-    doReturnHome(drone, missionConf)
+    handleDeployRetrieveMission(drone, missionConf, deployWaypointHandler)
 
 def handleRetrieveMission(drone, missionConf):
     def retrieveWaypointHandler(drone, missionConf):
-        pass
+        # TODO: pickup node here
+        # while (!nodeRetrieved):
+        time.sleep(25) # placeholder to delay mission
 
-    pass
+    handleDeployRetrieveMission(drone, missionConf, retrieveWaypointHandler)
 
 def handleMission(drone, missionConf):
     MISSIONS = {
@@ -107,8 +116,6 @@ def handleMission(drone, missionConf):
         'retrieve': handleRetrieveMission
     }
     MISSIONS[missionConf['Type']](drone, missionConf)
-
-
 
 def parseSockInfo(socketStr):
     s = socketStr.split(':')
@@ -131,7 +138,9 @@ def on_err(e):
 def on_timeout(process, drone=None):
     ''' Handle a heartbeat timeout'''
     os.kill(process.pid, SIGKILL)
-    drone.land()
+    drone.clearMission()
+    drone.land(drone.current_lat, drone.current_lon)
+    drone.update()
 
 def main():
 

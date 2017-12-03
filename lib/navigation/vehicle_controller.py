@@ -36,7 +36,7 @@ class VehicleController(object):
         """
         self._vehicle = connect(self._vehicle_resource, wait_ready=True)
         self._cmds = self._vehicle.commands
-        self._cmds.clear()
+        self.clearMission()
         self._initialized = True
 
     def _assertInitialized(self):
@@ -63,15 +63,15 @@ class VehicleController(object):
         self._assertInitialized()
         return self._vehicle.home_location
 
-    def takeoff(self, lat, lon):
+    def takeoff(self):
         self._assertInitialized()
-        self.takeoffTo(lat, lon, self.default_altitude)
+        self.takeoffTo(self.default_altitude)
 
-    def takeoffTo(self, lat, lon, altitude):
+    def takeoffTo(self, altitude):
         self._assertInitialized()
         self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
-                        mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 1, 0, 0, 0, 0, float(lat),
-                        float(lon), float(altitude)))
+                        mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 1, 0, 0, 0, 0, self.current_lat,
+                        self.current_lon, float(altitude)))
 
     def land(self, lat, lon):
         """
@@ -79,7 +79,7 @@ class VehicleController(object):
         """
         self._assertInitialized()
         self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
-                      mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 1, 0, 0, 0, 0, float(lat),
+                      mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0, 0, 0, float(lat),
                       float(lon), 0.0))
 
     def moveTo(self, dx, dy, dz):
@@ -109,23 +109,26 @@ class VehicleController(object):
                 'gps': self._vehicle.gps_0,
                 'altitude': self.current_alt}
 
-    def navigateTo(self, lat, lon, alt):
+    def navigateTo(self, waypoint):
         """
         Navigate to the given GPS waypoint.
         """
         self._assertInitialized()
-        waypoint = form_waypoint(lat, lon, alt)
         self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
                                mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 1, 0, 0, 0, 0,
                                float(waypoint.lat), float(waypoint.lon), float(waypoint.alt)))
 
     def startMission(self):
-        self._cmds.upload()
+        self.update()
         self._arm()
         self._set_mode(AUTO)
+        self._cmds.next = 1
 
     def clearMission(self):
         self._cmds.clear()
+        self.update()
+
+    def update(self):
         self._cmds.upload()
 
     def getLocation(self):
