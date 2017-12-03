@@ -2,6 +2,9 @@
 # add the library directory to the path for this script.
 import sys
 import os
+import time
+from collections import namedtuple
+from dronekit import LocationGlobal
 lib_path = os.path.dirname(os.path.realpath(__file__)) + "/lib"
 sys.path.insert(0, lib_path)
 
@@ -20,6 +23,8 @@ from navigation import VehicleController
 from mission_config import parseMissionConfig
 import watchdog
 
+LatLon = namedtuple('LatLon', ['lat', 'lon'])
+
 def getArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('config', help="The config file for the mission controller.")
@@ -36,14 +41,24 @@ def loadConfiguration(configFilename):
         return yaml.load(configFile)
 
 def doReturnHome(drone, missionConf):
+    drone.clearMission()
     if missionConf['Return Home']:
         drone.returnHome()
+    drone.startMission()
 
 def genericMission(drone, missionConf, missionStrategy):
     drone.takeoff()
     missionStrategy(drone, missionConf)
     doReturnHome(drone, missionConf)
     drone.land()
+    drone.startMission()
+
+def genericGoToLandMission(drone, waypoint):
+    drone.clearMission()
+    drone.takeoff(drone.current_lat, drone.current_lon)
+    drone.navigateTo(waypoint.lat,waypoint.lon,waypoint.alt)
+    drone.land(waypoint.lat, waypoint.lon)
+    drone.startMission()
 
 def handleNavigationMission(drone, missionConf, wayPointTask=None):
     def navStrat(drone, missionConf):
@@ -68,16 +83,20 @@ def handleDefaultMission(drone, missionConf):
     handleNavigationMission(drone, missionConf, wayPointTask=missionWaypointHandler)
 
 def handleDeployMission(drone, missionConf):
-    def deployWaypointHandler(drone, missionConf):
-        pass # TODO: Actually do something at each waypoint
+    for waypoint in missionConf['Waypoints']:
+        lat,lon,alt = waypoint.split(',')
+        waypoint = LocationGlobal(lat,lon,alt)
+        genericGoToLandMission(drone, waypoint)
+        # TODO: deploy node
+        time.sleep(30)  # placeholder
 
-    handleNavigationMission(drone, missionConf, wayPointTask=deployWaypointHandler)
+    doReturnHome(drone, missionConf)
 
 def handleRetrieveMission(drone, missionConf):
     def retrieveWaypointHandler(drone, missionConf):
-        pass # TODO: Actually do something at each waypoint
+        pass
 
-    handleNavigationMission(drone, missionConf, wayPointTask=retrieveWaypointHandler)
+    pass
 
 def handleMission(drone, missionConf):
     MISSIONS = {
@@ -88,6 +107,7 @@ def handleMission(drone, missionConf):
         'retrieve': handleRetrieveMission
     }
     MISSIONS[missionConf['Type']](drone, missionConf)
+
 
 
 def parseSockInfo(socketStr):

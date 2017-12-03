@@ -4,11 +4,14 @@ This file contains the interface definition for a high level
 navigation controller.
 """
 
-from dronekit import connect, VehicleMode
+from dronekit import connect, VehicleMode, Command
+from pymavlink import mavutil
 from .nav_util import form_waypoint, get_location_bounds
 
 import time
 import logging
+
+AUTO = 4
 
 class VehicleController(object):
     """
@@ -60,36 +63,24 @@ class VehicleController(object):
         self._assertInitialized()
         return self._vehicle.home_location
 
-    def takeoff(self):
+    def takeoff(self, lat, lon):
         self._assertInitialized()
-        self.takeoffTo(self.default_altitude)
+        self.takeoffTo(lat, lon, self.default_altitude)
 
-    def takeoffTo(self, altitude):
-        """
-        Arms the copter object and flies to specified altitude.
-        Follows recommended (safe) launch sequence detailed at this link:
-        ---> http://python.dronekit.io/develop/best_practice.html
-
-        :param altitude: Target height (m)
-        """
+    def takeoffTo(self, lat, lon, altitude):
         self._assertInitialized()
-        self._set_mode('GUIDED')
-        self._arm()
-        self._vehicle.simple_takeoff(altitude)
+        self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                        mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 1, 0, 0, 0, 0, float(lat),
+                        float(lon), float(altitude)))
 
-        # Wait until the vehicle almost reaches target altitude
-        while self.current_alt < altitude*0.95:
-            self._logger.debug("Taking off: Current Altitude %.3f", self.current_alt)
-            time.sleep(0.250)
-
-    def land(self):
+    def land(self, lat, lon):
         """
-        Land at current latitude/longitude by putting vehicle into LAND mode.
+        Land at specified latitude/longitude by putting vehicle into LAND mode.
         """
         self._assertInitialized()
-        self._set_mode('LAND')
-        while self.current_alt > 0.0:
-            time.sleep(0.250)
+        self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                      mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 1, 0, 0, 0, 0, float(lat),
+                      float(lon), 0.0))
 
     def moveTo(self, dx, dy, dz):
         self._assertInitialized()
@@ -101,10 +92,10 @@ class VehicleController(object):
         NOTE: The value parameter RTL_MIN from within GCS configuration will determine what altitude the drone
         will take off to when returning home. The default is 15 m.
         """
-        self._set_mode('RTL')
 
-        while not self.reachedLocation(self.home_position):
-            time.sleep(0.250)
+        self._assertInitialized()
+        self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                      mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, 0, 1, 0, 0, 0, 0, 0, 0, 0))
 
     def getVehicleStatus(self):
         """
@@ -120,15 +111,22 @@ class VehicleController(object):
 
     def navigateTo(self, lat, lon, alt):
         """
-        Set GUIDED mode and navigate to the given GPS waypoint.
+        Navigate to the given GPS waypoint.
         """
         self._assertInitialized()
-        self._set_mode('GUIDED')
         waypoint = form_waypoint(lat, lon, alt)
-        self._vehicle.simple_goto(waypoint)
+        self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                               mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 1, 0, 0, 0, 0,
+                               float(waypoint.lat), float(waypoint.lon), float(waypoint.alt)))
 
-        while not self.reachedLocation(waypoint):
-            time.sleep(0.250)
+    def startMission(self):
+        self._cmds.upload()
+        self._arm()
+        self._set_mode(AUTO)
+
+    def clearMission(self):
+        self._cmds.clear()
+        self._cmds.upload()
 
     def getLocation(self):
         """
@@ -173,9 +171,6 @@ class VehicleController(object):
         Safely arms the drone.
         """
         self._assertInitialized()
-        while not self._vehicle.is_armable:
-            time.sleep(1)
-
         self._vehicle.armed = True
 
         while not self._vehicle.armed:
@@ -187,5 +182,6 @@ class VehicleController(object):
         """
         self._assertInitialized()
         self._vehicle.armed = False
+
         while self._vehicle.armed:
             time.sleep(1)
