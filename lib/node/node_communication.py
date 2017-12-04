@@ -39,7 +39,7 @@ class NodeHub():
 		self.serial = serial.Serial(OLI_MAC_SERIAL, BAUDRATE, timeout = 20)
 
 	def init_gmplotter(self):
-		self.plotter = gmplot.GoogleMapPlotter(42.3398, -71.0892, 16)
+		self.plotter = gmplot.GoogleMapPlotter( 42.078999, -71.257614, 19)
 
 	def plot_points(self):
 		for node in self.nodeLocations:
@@ -70,7 +70,7 @@ class NodeHub():
 					processed_data = self.parse_recv_data(recv_data)
 					self.handle_recv_data(processed_data)
 				except:
-					print("invalid json data")
+					print("invalid data format")
 					continue
 			else:
 				print("no data received")
