@@ -1,4 +1,7 @@
-import picamera
+try:
+    import picamera
+except ImportError:
+    print("Warning: Picamera not found")
 import cv2
 import time
 

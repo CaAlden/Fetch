@@ -4,11 +4,14 @@ This file contains the interface definition for a high level
 navigation controller.
 """
 
-from dronekit import connect, VehicleMode, LocationGlobal
+from dronekit import connect, VehicleMode, Command
+from pymavlink import mavutil
+from .nav_util import form_waypoint, get_location_bounds
 
 import time
 import logging
 
+AUTO = 4
 
 class VehicleController(object):
     """
@@ -23,6 +26,7 @@ class VehicleController(object):
 
         self._vehicle_resource = vehicle_resource
         self.default_altitude = 3
+        self._initialized = False
 
     def initialize(self, vehicleConfig=None):
         """
@@ -31,73 +35,124 @@ class VehicleController(object):
         :return:
         """
         self._vehicle = connect(self._vehicle_resource, wait_ready=True)
-        self._location = self._vehicle.location.global_relative_frame
         self._cmds = self._vehicle.commands
-        self._cmds.clear()
+        self.clearMission()
+        self._initialized = True
+
+    def _assertInitialized(self):
+        if not self._initialized:
+            raise RuntimeError("{} not initialized!".format(self._vehicle_resource))
+
+    @property
+    def current_lat(self):
+        self._assertInitialized()
+        return self._vehicle.location._lat
+
+    @property
+    def current_lon(self):
+        self._assertInitialized()
+        return self._vehicle.location._lon
+
+    @property
+    def current_alt(self):
+        self._assertInitialized()
+        return self._vehicle.location._alt
+
+    @property
+    def home_position(self):
+        self._assertInitialized()
+        return self._vehicle.home_location
 
     def takeoff(self):
-        """
-        Arms the copter object and flies to the default altitude. Follows
-        recommended launch sequence detailed at this link:
-        ---> http://python.dronekit.io/develop/best_practice.html
-        """
-        self._set_mode('GUIDED')
-        self._arm()
-        self._vehicle.simple_takeoff(self.default_altitude)
-
-        # Wait until the vehicle almost reaches target altitude
-        while self._vehicle.location.global_relative_frame.alt < self.default_altitude*0.95:
-            time.sleep(1)
+        self._assertInitialized()
+        self.takeoffTo(self.default_altitude)
 
     def takeoffTo(self, altitude):
-        """
-        Arms the copter object and flies to specified altitude.
-        Follows recommended (safe) launch sequence detailed at this link:
-        ---> http://python.dronekit.io/develop/best_practice.html
+        self._assertInitialized()
+        self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                        mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 1, 0, 0, 0, 0, self.current_lat,
+                        self.current_lon, float(altitude)))
 
-        :param altitude: Target height (m)
+    def land(self, lat, lon):
         """
-        self._set_mode('GUIDED')
-        self._arm()
-        self._vehicle.simple_takeoff(altitude)
-
-        # Wait until the vehicle almost reaches target altitude
-        while self._vehicle.location.global_relative_frame.alt < altitude*0.95:
-            time.sleep(1)
-
-    def land(self):
+        Land at specified latitude/longitude by putting vehicle into LAND mode.
         """
-        Land at current latitude/longitude by putting vehicle into LAND mode.
-        """
-        self._set_mode('LAND')
+        self._assertInitialized()
+        self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                      mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0, 0, 0, float(lat),
+                      float(lon), 0.0))
 
     def moveTo(self, dx, dy, dz):
-        pass # TODO: See issue #1 - implement using STABILIZE mode?
+        self._assertInitialized()
+        # TODO: See issue #1 - implement using STABILIZE mode?
+
+    def returnHome(self):
+        """
+        Return to the home position (where vehicle was armed).
+        NOTE: The value parameter RTL_MIN from within GCS configuration will determine what altitude the drone
+        will take off to when returning home. The default is 15 m.
+        """
+
+        self._assertInitialized()
+        self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                      mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, 0, 1, 0, 0, 0, 0, 0, 0, 0))
 
     def getVehicleStatus(self):
         """
         Display some basic vehicle attributes. Could be used to verify
         proper vehicle connection.
         """
+        self._assertInitialized()
         return {'type': self._vehicle._vehicle_type,
                 'armed': self._vehicle.armed,
                 'status': self._vehicle.system_status,
                 'gps': self._vehicle.gps_0,
-                'altitude': self._vehicle.location.global_relative_frame.alt}
+                'altitude': self.current_alt}
 
-    def navigateTo(self, lat, lon, alt):
+    def navigateTo(self, waypoint):
         """
-        Set GUIDED mode and navigate to the given GPS waypoint.
+        Navigate to the given GPS waypoint.
         """
-        self._set_mode('GUIDED')
-        gps_coord = LocationGlobal(lat, lon, alt)
-        self._vehicle.simple_goto(gps_coord)
+        self._assertInitialized()
+        self._cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                               mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 1, 0, 0, 0, 0,
+                               float(waypoint.lat), float(waypoint.lon), float(waypoint.alt)))
+
+    def startMission(self):
+        self.update()
+        self._arm()
+        self._set_mode(AUTO)
+        self._cmds.next = 1
+
+    def clearMission(self):
+        self._cmds.clear()
+        self.update()
+
+    def update(self):
+        self._cmds.upload()
 
     def getLocation(self):
         """
         Report the vehicles current location.
         """
-        return self._location.alt
+        self._assertInitialized()
+        return {'lat': self.current_lat,
+                'lon': self.current_lon,
+                'alt': self.current_alt}
+
+    def reachedLocation(self, location):
+        """
+        Determines if the vehicle has reached the given location coordinates.
+        :param location: LocationGlobal object specifying the location that the drone should reach.
+        :return: Bool indicating whether the location has been reached (within error bounds).
+        """
+        self._assertInitialized()
+        bounds = get_location_bounds(location)
+        if (self.current_lat > bounds.lat.max or self.current_lat < bounds.lat.min) and \
+            (self.current_lon > bounds.lon.max or self.current_lon < bounds.lon.min):
+            return False
+        else:
+            return True
 
     def _log(self, message, level=logging.INFO):
         """
@@ -111,15 +166,14 @@ class VehicleController(object):
         Set vehicle mode.
         :param mode: Integer designating the desired MAV mode
         """
+        self._assertInitialized()
         self._vehicle.mode = VehicleMode(mode)
 
     def _arm(self):
         """
         Safely arms the drone.
         """
-        while not self._vehicle.is_armable:
-            time.sleep(1)
-
+        self._assertInitialized()
         self._vehicle.armed = True
 
         while not self._vehicle.armed:
@@ -129,6 +183,8 @@ class VehicleController(object):
         """
         Safely disarms the drone.
         """
+        self._assertInitialized()
         self._vehicle.armed = False
+
         while self._vehicle.armed:
             time.sleep(1)
